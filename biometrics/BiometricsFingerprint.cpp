@@ -31,9 +31,6 @@ namespace fingerprint {
 namespace V2_1 {
 namespace implementation {
 
-// Supported fingerprint HAL version
-static const uint16_t kVersion = HARDWARE_MODULE_API_VERSION(2, 0);
-
 using RequestStatus =
         android::hardware::biometrics::fingerprint::V2_1::RequestStatus;
 
@@ -187,13 +184,16 @@ Return<RequestStatus> BiometricsFingerprint::cancel() {
 }
 
 #define MAX_FINGERPRINTS 100
+
 typedef int (*enumerate_2_0)(struct fingerprint_device *dev, fingerprint_finger_id_t *results,
         uint32_t *max_size);
+
 Return<RequestStatus> BiometricsFingerprint::enumerate()  {
     fingerprint_finger_id_t results[MAX_FINGERPRINTS];
     uint32_t n = MAX_FINGERPRINTS;
     enumerate_2_0 enumerate = (enumerate_2_0) mDevice->enumerate;
     int ret = enumerate(mDevice, results, &n);
+
     if (ret == 0 && mClientCallback != nullptr) {
         ALOGD("Got %d enumerated templates", n);
         for (uint32_t i = 0; i < n; i++) {
@@ -205,6 +205,7 @@ Return<RequestStatus> BiometricsFingerprint::enumerate()  {
             }
         }
     }
+
     return ErrorFilter(ret);
 }
 
@@ -265,12 +266,6 @@ fingerprint_device_t* BiometricsFingerprint::openHal() {
 
     if (0 != (err = module->common.methods->open(hw_mdl, nullptr, &device))) {
         ALOGE("Can't open fingerprint methods, error: %d", err);
-        return nullptr;
-    }
-
-    if (kVersion != device->version) {
-        // enforce version on new devices because of HIDL@2.1 translation layer
-        ALOGE("Wrong fp version. Expected %d, got %d", kVersion, device->version);
         return nullptr;
     }
 
